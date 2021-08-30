@@ -62,17 +62,47 @@ bool RouterTask::loop(System &system) {
     if (system.getUserConfig()->digi.active && modemMsg->getSource() != system.getUserConfig()->callsign) {
       std::shared_ptr<APRSMessage> digiMsg = std::make_shared<APRSMessage>(*modemMsg);
       String                       path    = digiMsg->getPath();
+      String                       dest    = digiMsg->getDestination();
+      bool                         doDigipeat = false;
+      
 
-      // simple loop check
-      if (path.indexOf("WIDE1-1") >= 0 && path.indexOf(system.getUserConfig()->callsign) == -1) {
+      // wide1-1 and DST-1 are exclusive. Only one allowed
+      if (path.indexOf("WIDE1-1") >= 0 && path.indexOf(system.getUserConfig()->callsign) == -1 && dest.indexOf("-") >=0) { 
         // fixme
+        logPrintD("WIDE Digipeating: ");
+        doDigipeat = true;
+      } else {
+        // Destination digipeating
+        if ( dest.indexOf("-") >=0 && path.indexOf(system.getUserConfig()->callsign) == -1) {
+          int                          destSsidIdx = 0; 
+          // for future use? at now, we digipeat only once.
+          //int                          destSsid = 0;
+          destSsidIdx = dest.indexOf("-");
+          //destSsid = dest.substring(destSsidIdx+1).toInt();
+          //destSsid -= 1;
+          dest.remove(destSsidIdx, 2);
+          
+          //if (! destSsid == 0){
+          //  dest += "-" + (String(destSsid));
+          //}
+          
+          logPrintD("DST Digipeating: ");
+          digiMsg->setDestination(dest);
+          doDigipeat = true;
+        } else {
+          // No wide1-1 no DST-1. Digipeat in case of Cross-Frequency Digipeating?
+          // should never be used - highly experimental :)
+          //logPrintlnD("Illegal Digipeating : ");
+          doDigipeat = false;
+        }
+      }
+
+      if (doDigipeat){
         digiMsg->setPath(system.getUserConfig()->callsign + "*");
-
-        logPrintD("DIGI: ");
         logPrintlnD(digiMsg->toString());
-
         _toModem.addElement(digiMsg);
       }
+
     }
   }
 
