@@ -60,49 +60,47 @@ bool RouterTask::loop(System &system) {
     }
 
     if (system.getUserConfig()->digi.active && modemMsg->getSource() != system.getUserConfig()->callsign) {
-      std::shared_ptr<APRSMessage> digiMsg = std::make_shared<APRSMessage>(*modemMsg);
-      String                       path    = digiMsg->getPath();
-      String                       dest    = digiMsg->getDestination();
+      std::shared_ptr<APRSMessage> digiMsg    = std::make_shared<APRSMessage>(*modemMsg);
+      String                       path       = digiMsg->getPath();
+      String                       dest       = digiMsg->getDestination();
       bool                         doDigipeat = false;
-      
 
       // wide1-1 and DST-1 are exclusive. Only one allowed
-      if (path.indexOf("WIDE1-1") >= 0 && path.indexOf(system.getUserConfig()->callsign) == -1 && dest.indexOf("-") >=0) { 
+      if (path.indexOf("WIDE1-1") >= 0 && path.indexOf(system.getUserConfig()->callsign) == -1 && dest.indexOf("-") == -1) {
         // fixme
         logPrintD("WIDE Digipeating: ");
         doDigipeat = true;
       } else {
         // Destination digipeating
-        if ( dest.indexOf("-") >=0 && path.indexOf(system.getUserConfig()->callsign) == -1) {
-          int                          destSsidIdx = 0; 
+        if (dest.indexOf("-") >= 0 && path.indexOf(system.getUserConfig()->callsign) == -1) {
+          int destSsidIdx = 0;
           // for future use? at now, we digipeat only once.
-          //int                          destSsid = 0;
+          // int                          destSsid = 0;
           destSsidIdx = dest.indexOf("-");
-          //destSsid = dest.substring(destSsidIdx+1).toInt();
-          //destSsid -= 1;
+          // destSsid = dest.substring(destSsidIdx+1).toInt();
+          // destSsid -= 1;
           dest.remove(destSsidIdx, 2);
-          
-          //if (! destSsid == 0){
+
+          // if (! destSsid == 0){
           //  dest += "-" + (String(destSsid));
           //}
-          
+
           logPrintD("DST Digipeating: ");
           digiMsg->setDestination(dest);
           doDigipeat = true;
         } else {
           // No wide1-1 no DST-1. Digipeat in case of Cross-Frequency Digipeating?
           // should never be used - highly experimental :)
-          //logPrintlnD("Illegal Digipeating : ");
+          // logPrintlnD("Illegal Digipeating : ");
           doDigipeat = false;
         }
       }
 
-      if (doDigipeat){
+      if (doDigipeat) {
         digiMsg->setPath(system.getUserConfig()->callsign + "*");
         logPrintlnD(digiMsg->toString());
         _toModem.addElement(digiMsg);
       }
-
     }
   }
 
